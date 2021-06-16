@@ -1,0 +1,10 @@
+sampleid	sample	status
+434-Gut-Mix-PL1	sample_code_1	case
+434-Gut-Mix-PL2	sample_code_2	case
+434-Gut-Mix-PL3	sample_code_3	case
+434-Gut-Mix-PL4	sample_code_4	case
+434-Gut-Mix-PL5	sample_code_5	case
+
+
+
+

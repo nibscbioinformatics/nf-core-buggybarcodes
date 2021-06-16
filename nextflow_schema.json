@@ -10,9 +10,6 @@
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": [
-                "input"
-            ],
             "properties": {
                 "input": {
                     "type": "string",
@@ -153,6 +150,9 @@
                     "default": "${params.outdir}/pipeline_info",
                     "fa_icon": "fas fa-cogs",
                     "hidden": true
+                },
+                "skip_multiqc": {
+                    "type": "boolean"
                 },
                 "show_hidden_params": {
                     "type": "boolean",
