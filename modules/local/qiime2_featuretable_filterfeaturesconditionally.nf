@@ -4,8 +4,8 @@ include { initOptions; saveFiles; getSoftwareName } from './functions'
 params.options = [:]
 options    = initOptions(params.options)
 
-process QIIME2_VSEARCH_JOINPAIRS {
-    tag "$trim_qza"
+process QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY {
+    tag "$deblur_table"
     label 'process_low'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -15,24 +15,21 @@ process QIIME2_VSEARCH_JOINPAIRS {
     container "quay.io/qiime2/core:2021.2"
 
     input:
-    path trim_qza // just need to provide folder paths
-    // think of way to allow primers sequences input in command line and used here
+    path deblur_table
 
     output:
-    path "*.qza"                , emit: qza
-    path "*.log"                , emit: log
-    path "*.version.txt"        , emit: version
+    path 'table-deblur-filtered.qza'         , emit: qza
+    path 'filter-features-conditionally.log' , emit: log
+    path '*.version.txt'                     , emit: version
 
     script:
-    def software      = getSoftwareName(task.process)
+    def software     = getSoftwareName(task.process)
     """
-
-    qiime vsearch join-pairs \\
-        --i-demultiplexed-seqs $trim_qza \\
-        --o-joined-sequences demux_joined.qza \\
-        --p-threads $task.cpus \\
+    qiime feature-table filter-features-conditionally \\
+        --i-table $deblur_table \\
         $options.args \\
-        > vsearch_joinpairs.log
+        --o-filtered-table table-deblur-filtered.qza \\
+        > filter-features-conditionally.log
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
     """
 }

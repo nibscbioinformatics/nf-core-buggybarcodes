@@ -4,9 +4,9 @@ include { initOptions; saveFiles; getSoftwareName } from './functions'
 params.options = [:]
 options    = initOptions(params.options)
 
-process QIIME2_VSEARCH_JOINPAIRS {
-    tag "$trim_qza"
-    label 'process_low'
+process QIIME2_TAXA_BARPLOT {
+    tag "metadata: $metadata, taxonomy: $taxonomy, table: $table"
+	label 'process_low'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), publish_id:'') }
@@ -14,25 +14,25 @@ process QIIME2_VSEARCH_JOINPAIRS {
     conda (params.enable_conda ? { exit 1 "QIIME2 has no conda package" } : null)
     container "quay.io/qiime2/core:2021.2"
 
-    input:
-    path trim_qza // just need to provide folder paths
-    // think of way to allow primers sequences input in command line and used here
+	input:
+	path metadata
+	path table
+	path taxonomy
 
-    output:
-    path "*.qza"                , emit: qza
-    path "*.log"                , emit: log
-    path "*.version.txt"        , emit: version
+	output:
+	path "*barplots.qzv", emit: plot
+	path "*.log"		, emit: log
+    path "*.version.txt", emit: version
 
     script:
-    def software      = getSoftwareName(task.process)
-    """
-
-    qiime vsearch join-pairs \\
-        --i-demultiplexed-seqs $trim_qza \\
-        --o-joined-sequences demux_joined.qza \\
-        --p-threads $task.cpus \\
-        $options.args \\
-        > vsearch_joinpairs.log
+    def software     = getSoftwareName(task.process)
+	"""
+	qiime taxa barplot \\
+		--i-table ${table} \\
+		--i-taxonomy ${taxonomy} \\
+		--m-metadata-file ${metadata} \\
+		--o-visualization taxa-barplots.qzv \\
+		> taxa-barplot.log
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
-    """
+	"""
 }

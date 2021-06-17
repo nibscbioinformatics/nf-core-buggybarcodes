@@ -5,7 +5,7 @@ params.options = [:]
 options    = initOptions(params.options)
 
 process QIIME2_CUTADAPT_TRIMPAIRED {
-    //tag "$demux"
+    tag "$demux"
     label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -28,9 +28,9 @@ process QIIME2_CUTADAPT_TRIMPAIRED {
 
     qiime cutadapt trim-paired \\
         --i-demultiplexed-sequences $demux \\
+        $options.args \\
         --o-trimmed-sequences demux_trimmed.qza \\
         --p-cores $task.cpus \\
-        $options.args \\
         > cutadapt_trimpairs.log
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
     """

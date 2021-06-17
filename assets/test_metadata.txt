@@ -1,9 +1,9 @@
-sampleid	sample	status
-434-Gut-Mix-PL1	sample_code_1	case
-434-Gut-Mix-PL2	sample_code_2	case
-434-Gut-Mix-PL3	sample_code_3	case
-434-Gut-Mix-PL4	sample_code_4	case
-434-Gut-Mix-PL5	sample_code_5	case
+sampleid	sample
+355-FD2-1	sample_code_1
+355-FD2-2	sample_code_2
+355-FD2-3	sample_code_3
+355-FD2-4	sample_code_4
+355-FD2-5	sample_code_5
 
 
 

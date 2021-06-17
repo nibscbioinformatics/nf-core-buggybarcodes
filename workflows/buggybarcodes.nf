@@ -43,18 +43,22 @@ def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
 def qiime2_cutadapt_trimpaired_options = modules['qiime2_cutadapt_trimpaired']
-//qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? " --p-discard-untrimmed" : " --p-no-discard-untrimmed"  // retain untrimmed reads
 qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs([" --p-discard-untrimmed"]) : ""
-// cutadapt_trimpaired_options.args += params.forward_primer ? if conf file doesnt work try this
 
 // Modules: local
 include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]       )
 include { QIIME2_IMPORT                              } from '../modules/local/qiime2_import'                addParams( options: modules['qiime2_import']           )
-include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options        )
-include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']        )
-include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore']        )
-include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']        )
+include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options     )
+include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']    )
+include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore'] )
+include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']    )
 include { QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN   } from '../modules/local/qiime2_featureclassifier_classifysklearn'     addParams( options: modules['qiime2_featureclassifier_classifysklearn']    )
+include { QIIME2_METADATA_TABULATE                   } from '../modules/local/qiime2_metadata_tabulate'     addParams( options: modules['qiime2_metadata_tabulate']    )
+//include { QIIME2_FEATURETABLE_FILTERFEATURES as QIIMME2_FEATURETABLE_FILTERSAMPLES         } from '../modules/local/qiime2_featuretable_filterfeatures'     addParams( options: modules['qiime2_featuretable_filterfeatures']    )
+include { QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY } from '../modules/local/qiime2_featuretable_filterfeaturesconditionally'     addParams( options: modules['qiime2_featuretable_filterfeaturesconditionally']    )
+include { QIIME2_TAXA_BARPLOT                       } from '../modules/local/qiime2_taxa_barplot'          addParams( optiona: modules['qiime2_taxa_barplot']         )
+include { QIIME2_TOOLS_EXPORT                       } from '../modules/local/qiime2_tools_export'          addParams( optiona: modules['qiime2_tools_export']         )
+
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
@@ -163,14 +167,34 @@ workflow BUGGYBARCODES {
     QIIME2_DEBLUR_DENOISE16S (
         ch_filtered_artifact
     )
-    ch_rep_seqs = QIIME2_DEBLUR_DENOISE16S.out.rep_seqs
+    ch_rep_seqs     = QIIME2_DEBLUR_DENOISE16S.out.rep_seqs
+    ch_deblur_table = QIIME2_DEBLUR_DENOISE16S.out.table
 
     QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN (
         ch_qiime_classifier,
         ch_rep_seqs
     )
+    ch_reps_qza = QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN.out.qza
 
+    QIIME2_METADATA_TABULATE (
+        ch_rep_seqs
+    )
 
+    QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY (
+        ch_deblur_table
+    )
+    ch_filtered_table = QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY.out.qza
+
+    QIIME2_TAXA_BARPLOT (
+        ch_metadata,
+        ch_filtered_table,
+        ch_reps_qza
+    )
+    ch_plot_qzv  = QIIME2_TAXA_BARPLOT.out.plot
+
+    QIIME2_TOOLS_EXPORT (
+        ch_plot_qzv
+    )
 /*
 ==========================================
         Get Software Versions

@@ -5,7 +5,7 @@ params.options = [:]
 options    = initOptions(params.options)
 
 process QIIME2_DEBLUR_DENOISE16S {
-    //tag "$demux"
+    tag "$demux"
     label 'process_high'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -26,7 +26,6 @@ process QIIME2_DEBLUR_DENOISE16S {
     script:
     def software      = getSoftwareName(task.process)
     """
-
     qiime deblur denoise-16S \\
         --i-demultiplexed-seqs $demux \\
         $options.args \\

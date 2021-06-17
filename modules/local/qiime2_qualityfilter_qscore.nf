@@ -5,7 +5,7 @@ params.options = [:]
 options    = initOptions(params.options)
 
 process QIIME2_QUALITYFILTER_QSCORE {
-   // tag "$demux_qza"
+    tag "$demux_qza"
     label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -21,7 +21,6 @@ process QIIME2_QUALITYFILTER_QSCORE {
     path "*filtered.qza"     , emit: qza
     path "*stats.qza"        , emit: stats
     path "*.version.txt"     , emit: version
-    path ""
 
     script:
     def software      = getSoftwareName(task.process)
