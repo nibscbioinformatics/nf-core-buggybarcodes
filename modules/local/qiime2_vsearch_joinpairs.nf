@@ -5,6 +5,7 @@ params.options = [:]
 options    = initOptions(params.options)
 
 process QIIME2_VSEARCH_JOINPAIRS {
+    //tag "$trim_qza"
     label 'process_low'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -18,7 +19,7 @@ process QIIME2_VSEARCH_JOINPAIRS {
     // think of way to allow primers sequences input in command line and used here
 
     output:
-    path "*.qza"    , emit: qza
+    path "*.qza"                , emit: qza
     path "*.version.txt"        , emit: version
 
     script:
@@ -29,7 +30,8 @@ process QIIME2_VSEARCH_JOINPAIRS {
         --i-demultiplexed-seqs $trim_qza \\
         --o-joined-sequences demux_joined.qza \\
         --p-threads $task.cpus \\
-        $options.args
+        $options.args \\
+        > vsearch_joinpairs.log
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
     """
 }

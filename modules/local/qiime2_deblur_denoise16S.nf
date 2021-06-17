@@ -4,9 +4,9 @@ include { initOptions; saveFiles; getSoftwareName } from './functions'
 params.options = [:]
 options    = initOptions(params.options)
 
-process QIIME2_IMPORT {
-    //tag "$reads_dir"
-    label 'process_medium'
+process QIIME2_DEBLUR_DENOISE16S {
+    //tag "$demux"
+    label 'process_high'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), publish_id:'') }
@@ -15,20 +15,25 @@ process QIIME2_IMPORT {
     container "quay.io/qiime2/core:2021.2"
 
     input:
-    path reads_dir // just need to provide folder paths
-    // nned to look at using manifest file for imput...
+    path demux
 
     output:
-    path "demux.qza"    , emit: qza
-    path "*.version.txt", emit: version
+    path "table-deblur.qza"                , emit: table
+    path "*-seqs-deblur.qza"               , emit: rep_seqs
+    path "stats-deblur.qza"                , emit: stats
+    path "*.version.txt"                   , emit: version
 
     script:
     def software      = getSoftwareName(task.process)
     """
-    qiime tools import \\
-        --input-path  ${reads_dir} \\
+
+    qiime deblur denoise-16S \\
+        --i-demultiplexed-seqs $demux \\
         $options.args \\
-        --output-path  demux.qza
+        --p-jobs-to-start $task.cpus \\
+        --o-representative-sequences reps-seqs-deblur.qza \\
+        --o-table table-deblur.qza \\
+        --o-stats stats-deblur.qza
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
     """
 }

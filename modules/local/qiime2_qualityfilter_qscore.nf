@@ -4,8 +4,8 @@ include { initOptions; saveFiles; getSoftwareName } from './functions'
 params.options = [:]
 options    = initOptions(params.options)
 
-process QIIME2_IMPORT {
-    //tag "$reads_dir"
+process QIIME2_QUALITYFILTER_QSCORE {
+   // tag "$demux_qza"
     label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -15,21 +15,22 @@ process QIIME2_IMPORT {
     container "quay.io/qiime2/core:2021.2"
 
     input:
-    path reads_dir // just need to provide folder paths
-    // nned to look at using manifest file for imput...
+    path demux_qza
 
     output:
-    path "demux.qza"    , emit: qza
-    path "*.version.txt", emit: version
+    path "*filtered.qza"     , emit: qza
+    path "*stats.qza"        , emit: stats
+    path "*.version.txt"     , emit: version
+    path ""
 
     script:
     def software      = getSoftwareName(task.process)
     """
-    qiime tools import \\
-        --input-path  ${reads_dir} \\
+    qiime quality-filter q-score \\
+        --i-demux  ${demux_qza} \\
         $options.args \\
-        --output-path  demux.qza
+        --o-filtered-sequences demux_filtered.qza \\
+        --o-filter-stats demux_filtered_stats.qza
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
     """
 }
-

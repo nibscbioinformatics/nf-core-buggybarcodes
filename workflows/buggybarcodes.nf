@@ -43,8 +43,8 @@ def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
 def qiime2_cutadapt_trimpaired_options = modules['qiime2_cutadapt_trimpaired']
-qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? " --p-discard-untrimmed" : " --p-no-discard-untrimmed"  // retain untrimmed reads
-// qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs([" --p-discard-untrimmed"]) : "  --p-no-discard-untrimmed"
+//qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? " --p-discard-untrimmed" : " --p-no-discard-untrimmed"  // retain untrimmed reads
+qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs([" --p-discard-untrimmed"]) : ""
 // cutadapt_trimpaired_options.args += params.forward_primer ? if conf file doesnt work try this
 
 // Modules: local
@@ -52,7 +52,9 @@ include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/ge
 include { QIIME2_IMPORT                              } from '../modules/local/qiime2_import'                addParams( options: modules['qiime2_import']           )
 include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options        )
 include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']        )
-
+include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore']        )
+include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']        )
+include { QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN   } from '../modules/local/qiime2_featureclassifier_classifysklearn'     addParams( options: modules['qiime2_featureclassifier_classifysklearn']    )
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
@@ -152,7 +154,21 @@ workflow BUGGYBARCODES {
     )
     ch_joined_artifact = QIIME2_VSEARCH_JOINPAIRS.out.qza
 
+    QIIME2_QUALITYFILTER_QSCORE (
+        ch_joined_artifact
+    )
+    ch_filtered_artifact = QIIME2_QUALITYFILTER_QSCORE.out.qza
 
+
+    QIIME2_DEBLUR_DENOISE16S (
+        ch_filtered_artifact
+    )
+    ch_rep_seqs = QIIME2_DEBLUR_DENOISE16S.out.rep_seqs
+
+    QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN (
+        ch_qiime_classifier,
+        ch_rep_seqs
+    )
 
 
 /*
