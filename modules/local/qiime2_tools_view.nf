@@ -4,9 +4,9 @@ include { initOptions; saveFiles; getSoftwareName } from './functions'
 params.options = [:]
 options    = initOptions(params.options)
 
-process QIIME2_TOOLS_EXPORT {
-	tag "$qiime_qzv"
-    label 'process_low'
+process QIIME2_TOOLS_VIEW {
+   // tag "$demux_qza"
+    label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), publish_id:'') }
@@ -14,19 +14,17 @@ process QIIME2_TOOLS_EXPORT {
     conda (params.enable_conda ? { exit 1 "QIIME2 has no conda package" } : null)
     container "quay.io/qiime2/core:2021.2"
 
-	input:
-	path qiime_qzv
+    input:
+    path table
 
-	output:
-	path "export/*"     , emit: folder
-    path "*.version.txt", emit: version
+    output:
+    path  "table.qzv", emit: qzv
 
     script:
-    def software     = getSoftwareName(task.process)
-	"""
-	qiime tools export \\
-	    --input-path $qiime_qzv \\
-		--output-path export
+    def software      = getSoftwareName(task.process)
+    """
+    qiime tools view $table
+
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt
-	"""
+    """
 }

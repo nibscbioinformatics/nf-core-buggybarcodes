@@ -46,19 +46,20 @@ def qiime2_cutadapt_trimpaired_options = modules['qiime2_cutadapt_trimpaired']
 qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs([" --p-discard-untrimmed"]) : ""
 
 // Modules: local
-include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]       )
-include { QIIME2_IMPORT                              } from '../modules/local/qiime2_import'                addParams( options: modules['qiime2_import']           )
-include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options     )
-include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']    )
-include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore'] )
-include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']    )
+include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]             )
+include { QIIME2_IMPORT                              } from '../modules/local/qiime2_import'                addParams( options: modules['qiime2_import']                 )
+include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options       )
+include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']      )
+include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore']   )
+include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']      )
 include { QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN   } from '../modules/local/qiime2_featureclassifier_classifysklearn'     addParams( options: modules['qiime2_featureclassifier_classifysklearn']    )
-include { QIIME2_METADATA_TABULATE                   } from '../modules/local/qiime2_metadata_tabulate'     addParams( options: modules['qiime2_metadata_tabulate']    )
+include { QIIME2_METADATA_TABULATE                   } from '../modules/local/qiime2_metadata_tabulate'     addParams( options: modules['qiime2_metadata_tabulate']      )
 //include { QIIME2_FEATURETABLE_FILTERFEATURES as QIIMME2_FEATURETABLE_FILTERSAMPLES         } from '../modules/local/qiime2_featuretable_filterfeatures'     addParams( options: modules['qiime2_featuretable_filterfeatures']    )
 include { QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY } from '../modules/local/qiime2_featuretable_filterfeaturesconditionally'     addParams( options: modules['qiime2_featuretable_filterfeaturesconditionally']    )
-include { QIIME2_TAXA_BARPLOT                       } from '../modules/local/qiime2_taxa_barplot'          addParams( optiona: modules['qiime2_taxa_barplot']         )
-include { QIIME2_TOOLS_EXPORT                       } from '../modules/local/qiime2_tools_export'          addParams( optiona: modules['qiime2_tools_export']         )
-
+include { QIIME2_TAXA_BARPLOT                       } from '../modules/local/qiime2_taxa_barplot'          addParams( options: modules['qiime2_taxa_barplot']            )
+include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_PLOTS } from '../modules/local/qiime2_tools_export'    addParams( options: modules['qiime2_tools_export_plots']            )
+include { QIIME2_FEATURETABLE_SUMMARIZE             } from '../modules/local/qiime2_featuretable_summarize' addParams( options: modules['qiime2_featuretable_summarize'] )
+include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_TABLES } from '../modules/local/qiime2_tools_export'    addParams( options: modules['qiime2_tools_export_tables']            )
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
@@ -138,15 +139,16 @@ workflow BUGGYBARCODES {
     )
 
 /*
-===================================================
-        QIIME 2: Import Artifact Object
-===================================================
+============================================================
+        QIIME 2: Import Artifact & Trimming & Pair Merging
+============================================================
 */
 
     QIIME2_IMPORT (
         ch_input_dir
     )
     ch_qiime2_artifact = QIIME2_IMPORT.out.qza
+    ch_software_versions = ch_software_versions.mix(QIIME2_IMPORT.out.version.first().ifEmpty(null))
 
     QIIME2_CUTADAPT_TRIMPAIRED (
         ch_qiime2_artifact
@@ -163,6 +165,11 @@ workflow BUGGYBARCODES {
     )
     ch_filtered_artifact = QIIME2_QUALITYFILTER_QSCORE.out.qza
 
+/*
+============================================================
+        QIIME 2: Denoising & Classification
+============================================================
+*/
 
     QIIME2_DEBLUR_DENOISE16S (
         ch_filtered_artifact
@@ -180,6 +187,12 @@ workflow BUGGYBARCODES {
         ch_rep_seqs
     )
 
+/*
+============================================================
+        QIIME 2: Filtering & Export
+============================================================
+*/
+
     QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY (
         ch_deblur_table
     )
@@ -192,9 +205,20 @@ workflow BUGGYBARCODES {
     )
     ch_plot_qzv  = QIIME2_TAXA_BARPLOT.out.plot
 
-    QIIME2_TOOLS_EXPORT (
+    QIIME2_TOOLS_EXPORT_PLOTS (
         ch_plot_qzv
     )
+
+    QIIME2_FEATURETABLE_SUMMARIZE (
+        ch_filtered_table
+    )
+    ch_table_qzv = QIIME2_FEATURETABLE_SUMMARIZE.out.qzv
+
+    QIIME2_TOOLS_EXPORT_TABLES (
+        ch_table_qzv
+    )
+
+
 /*
 ==========================================
         Get Software Versions

@@ -25,7 +25,6 @@ process QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN {
 
     script:
     def software      = getSoftwareName(task.process)
-    // export XDG_CONFIG_HOME="\${PWD}/HOME"  #dso this user-specific config file?? why including this...
     """
     qiime feature-classifier classify-sklearn \\
         --i-classifier ${trained_classifier} \\
