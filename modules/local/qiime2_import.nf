@@ -5,7 +5,7 @@ params.options = [:]
 options    = initOptions(params.options)
 
 process QIIME2_IMPORT {
-    tag "$reads_dir"
+    tag "$reads"
     label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -15,8 +15,7 @@ process QIIME2_IMPORT {
     container "quay.io/qiime2/core:2021.2"
 
     input:
-    path reads_dir // just need to provide folder paths
-    // nned to look at using manifest file for imput...
+    path reads
 
     output:
     path "demux.qza"    , emit: qza
@@ -26,7 +25,7 @@ process QIIME2_IMPORT {
     def software      = getSoftwareName(task.process)
     """
     qiime tools import \\
-        --input-path  ${reads_dir} \\
+        --input-path  ${reads} \\
         $options.args \\
         --output-path  demux.qza
     echo \$(qiime --version | sed -e "s/q2cli version //g" | tr -d '`' | sed -e "s/Run qiime info for more version details.//g") > ${software}.version.txt

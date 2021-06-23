@@ -1,0 +1,6 @@
+sample-id	forward-absolute-filepath	reverse-absolute-filepath
+355-FD2-1	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-1_S6_L001_R1_001.fastq.gz	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-1_S6_L001_R2_001.fastq.gz
+355-FD2-2	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-2_S7_L001_R1_001.fastq.gz	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-2_S7_L001_R2_001.fastq.gz
+355-FD2-3	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-3_S8_L001_R1_001.fastq.gz	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-3_S8_L001_R2_001.fastq.gz
+355-FD2-4	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-4_S9_L001_R1_001.fastq.gz	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-4_S9_L001_R2_001.fastq.gz
+355-FD2-5	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-5_S10_L001_R1_001.fastq.gz	/home/AD/mgordon/DATA/microbiome_testdata/testdata/16S_data/355-FD2-5_S10_L001_R2_001.fastq.gz

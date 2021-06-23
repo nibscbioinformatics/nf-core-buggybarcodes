@@ -9,21 +9,22 @@ params.summary_params = [:]
 ////////////////////////////////////////////////////
 
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.metadata, params.classifier ] //add back  params.multiqc_config,
+def checkPathParamList = [ params.input_dir, params.input_manifest, params.metadata, params.classifier ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
-if (params.input_dir) { ch_input_dir         = Channel.fromPath("${params.input_dir}", type:'dir', checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.input) { ch_input                 = Channel.fromPath("${params.input}", checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
+if (params.input_dir) { ch_input_dir         = Channel.fromPath("${params.input_dir}", type:'dir', checkIfExists:true ) }
+if (params.input_manifest) { ch_input_dir    = Channel.fromPath("${params.input_manifest}", checkIfExists:true ) }
+if (params.input) { ch_input                 = Channel.fromPath("${params.input}", type:'dir', checkIfExists:true ) }
 if (params.metadata) { ch_metadata           = Channel.fromPath("${params.metadata}", checkIfExists: true) } else { exit 1, 'metadata not specified' }
-if (params.classifier) { ch_qiime_classifier = Channel.fromPath("${params.classifier}", checkIfExists: true) } else { exit 1, 'Classifier not specified' }
+if (params.classifier) { ch_qiime_classifier = Channel.value(file("${params.classifier}", checkIfExists: true)) } else { exit 1, 'Classifier not specified' }
+
+// Check read input parameters
+if (!params.input_dir && !params.input_manifest) { exit 1, 'No input data provided - must specific either "--input_dir" or "--input_manifest"' }
+if (params.input_dir && params.input_manifest)   { exit 1, 'Both types of input data provided - must specific either "--input_dir" or "--input_manifest"' }
 
 // make user aware that enabling conda will cause pipeline to fail
 if (params.enable_conda) { log.warn "WARNING: QIIME 2 unavailable as Conda is enabled (--enable_conda). Use a container engine instead of conda to enable all software." }
-
-// TODO
-// Validate input parameters
-// Workflow.validateWorkflowParams(params, log)
 
 ////////////////////////////////////////////////////
 /* --          CONFIG FILES                    -- */
@@ -42,34 +43,37 @@ def modules = params.modules.clone()
 def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
+def qiime2_import_options = modules['qiime2_import']
+qiime2_import_options.args += params.input_dir ? Utils.joinModuleArgs(['--input-format CasavaOneEightSingleLanePerSampleDirFmt']) : ''
+qiime2_import_options.args += params.input_manifest ? Utils.joinModuleArgs(['--input-format PairedEndFastqManifestPhred33V2']) : ''
+//qiime2_import_options.args += params.input_manifest ? " --input-format PairedEndFastqManifestPhred33V2"  : ''
+//qiime2_import_options.args += params.input_dir ? " --input-format CasavaOneEightSingleLanePerSampleDirFmt"  : ''
+
 def qiime2_cutadapt_trimpaired_options = modules['qiime2_cutadapt_trimpaired']
-qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs([" --p-discard-untrimmed"]) : ""
+qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs(["--p-discard-untrimmed"]) : ""
 
 // Modules: local
-include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]             )
-include { QIIME2_IMPORT                              } from '../modules/local/qiime2_import'                addParams( options: modules['qiime2_import']                 )
-include { QIIME2_CUTADAPT_TRIMPAIRED                 } from '../modules/local/qiime2_cutadapt_trimpaired'   addParams( options: qiime2_cutadapt_trimpaired_options       )
-include { QIIME2_VSEARCH_JOINPAIRS                   } from '../modules/local/qiime2_vsearch_joinpairs'     addParams( options: modules['qiime2_vsearch_joinpairs']      )
-include { QIIME2_QUALITYFILTER_QSCORE                } from '../modules/local/qiime2_qualityfilter_qscore'  addParams( options: modules['qiime2_qualityfilter_qscore']   )
-include { QIIME2_DEBLUR_DENOISE16S                   } from '../modules/local/qiime2_deblur_denoise16S'     addParams( options: modules['qiime2_deblur_denoise16S']      )
-include { QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN   } from '../modules/local/qiime2_featureclassifier_classifysklearn'     addParams( options: modules['qiime2_featureclassifier_classifysklearn']    )
-include { QIIME2_METADATA_TABULATE                   } from '../modules/local/qiime2_metadata_tabulate'     addParams( options: modules['qiime2_metadata_tabulate']      )
-//include { QIIME2_FEATURETABLE_FILTERFEATURES as QIIMME2_FEATURETABLE_FILTERSAMPLES         } from '../modules/local/qiime2_featuretable_filterfeatures'     addParams( options: modules['qiime2_featuretable_filterfeatures']    )
-include { QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY } from '../modules/local/qiime2_featuretable_filterfeaturesconditionally'     addParams( options: modules['qiime2_featuretable_filterfeaturesconditionally']    )
-include { QIIME2_TAXA_BARPLOT                       } from '../modules/local/qiime2_taxa_barplot'          addParams( options: modules['qiime2_taxa_barplot']            )
-include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_PLOTS } from '../modules/local/qiime2_tools_export'    addParams( options: modules['qiime2_tools_export_plots']            )
-include { QIIME2_FEATURETABLE_SUMMARIZE             } from '../modules/local/qiime2_featuretable_summarize' addParams( options: modules['qiime2_featuretable_summarize'] )
-include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_TABLES } from '../modules/local/qiime2_tools_export'    addParams( options: modules['qiime2_tools_export_tables']            )
+include { GET_SOFTWARE_VERSIONS                             } from '../modules/local/get_software_versions'                               addParams( options: [publish_files : ['csv':'']]             )
+include { QIIME2_IMPORT                                     } from '../modules/local/qiime2_import'                                       addParams( options: qiime2_import_options                 )
+include { QIIME2_CUTADAPT_TRIMPAIRED                        } from '../modules/local/qiime2_cutadapt_trimpaired'                          addParams( options: qiime2_cutadapt_trimpaired_options       )
+include { QIIME2_VSEARCH_JOINPAIRS                          } from '../modules/local/qiime2_vsearch_joinpairs'                            addParams( options: modules['qiime2_vsearch_joinpairs']      )
+include { QIIME2_QUALITYFILTER_QSCORE                       } from '../modules/local/qiime2_qualityfilter_qscore'                         addParams( options: modules['qiime2_qualityfilter_qscore']   )
+include { QIIME2_DEBLUR_DENOISE16S                          } from '../modules/local/qiime2_deblur_denoise16S'                            addParams( options: modules['qiime2_deblur_denoise16S']      )
+include { QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN          } from '../modules/local/qiime2_featureclassifier_classifysklearn'            addParams( options: modules['qiime2_featureclassifier_classifysklearn']    )
+include { QIIME2_METADATA_TABULATE                          } from '../modules/local/qiime2_metadata_tabulate'                            addParams( options: modules['qiime2_metadata_tabulate']      )
+include { QIIME2_FEATURETABLE_FILTERFEATURESCONDITIONALLY   } from '../modules/local/qiime2_featuretable_filterfeaturesconditionally'     addParams( options: modules['qiime2_featuretable_filterfeaturesconditionally']    )
+include { QIIME2_TAXA_BARPLOT                               } from '../modules/local/qiime2_taxa_barplot'                                 addParams( options: modules['qiime2_taxa_barplot']            )
+include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_PLOTS  } from '../modules/local/qiime2_tools_export'                                 addParams( options: modules['qiime2_tools_export_plots']            )
+include { QIIME2_FEATURETABLE_SUMMARIZE                     } from '../modules/local/qiime2_featuretable_summarize'                       addParams( options: modules['qiime2_featuretable_summarize'] )
+include { QIIME2_TOOLS_EXPORT as QIIME2_TOOLS_EXPORT_TABLES } from '../modules/local/qiime2_tools_export'                                 addParams( options: modules['qiime2_tools_export_tables']            )
 
 // Modules: nf-core/modules
-include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
-include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
-include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
-include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: modules['cat_fastq']             )
-include { CUTADAPT                                   } from '../modules/nf-core/software/cutadapt/main'     addParams( options: modules['cutadapt']              )
+include { FASTQC as FASTQC_RAW                              } from '../modules/nf-core/software/fastqc/main'                              addParams( options: modules['fastqc_raw']            )
+include { MULTIQC                                           } from '../modules/nf-core/software/multiqc/main'                             addParams( options: multiqc_options                  )
+include { CAT_FASTQ                                         } from '../modules/nf-core/software/cat/fastq/main'                           addParams( options: modules['cat_fastq']             )
 
 // Subworkflows: local
-include { INPUT_CHECK                                } from '../subworkflows/input_check'                   addParams( options: [:]                              )
+include { INPUT_CHECK                                       } from '../subworkflows/input_check'                                          addParams( options: [:]                              )
 
 ////////////////////////////////////////////////////
 /* --           RUN MAIN WORKFLOW              -- */
@@ -86,8 +90,6 @@ workflow BUGGYBARCODES {
         Sample Check & Input Staging
 =====================================================
 */
-
-// Parse the input csv file and stage channels
 
     INPUT_CHECK (
         ch_input
@@ -106,9 +108,11 @@ workflow BUGGYBARCODES {
     }
     .set { ch_fastq_cat }
 
-    //
-    // MODULE: Concatenate FastQ files from same sample if required
-    //
+/*
+=====================================================
+        Concatenate FASTQ Files
+=====================================================
+*/
 
     CAT_FASTQ (
         ch_fastq_cat.multiple
@@ -118,7 +122,7 @@ workflow BUGGYBARCODES {
 
 /*
 =====================================================
-        Preprocessing and QC for short reads
+        Read Quality Assessment
 =====================================================
 */
 
@@ -126,17 +130,6 @@ workflow BUGGYBARCODES {
        ch_fastq
     )
     ch_software_versions = ch_software_versions.mix(FASTQC_RAW.out.version.first().ifEmpty(null))
-
-    CUTADAPT (
-        ch_fastq
-    )
-    ch_trimmed_reads = CUTADAPT.out.reads
-    //ch_qiime2_reads = CUTADAPT.out.reads.collect{it[1]} doesnt work.. need to provide directory as input, unless I can combine
-    ch_software_versions = ch_software_versions.mix(CUTADAPT.out.version.first().ifEmpty(null))
-
-    FASTQC_TRIMMED (
-        ch_trimmed_reads
-    )
 
 /*
 ============================================================
@@ -244,7 +237,6 @@ if (!params.skip_multiqc) {
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.zip.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (
             ch_multiqc_files.collect()
