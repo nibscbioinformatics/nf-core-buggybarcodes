@@ -12,8 +12,7 @@
 
 ## Introduction
 
-<!-- TODO nf-core: Write a 1-2 sentence summary of what data the pipeline is for and what it does -->
-**nf-core/buggybarcodes** is a bioinformatics best-practise analysis pipeline for
+**nf-core/buggybarcodes** is a bioinformatics analysis pipeline for 16S amplicon sequencing data that using the QIIME2 platform. This pipeline takes Illumina fastq files as input, performs adapter & primer trimming, read merging, quality trimming, deblur feature identification and taxonomic classification of features using a Naive Bayes Classifer trained on the SILVA 138 release.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It comes with docker containers making installation trivial and results highly reproducible.
 
@@ -25,36 +24,59 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
+    *  **Please Note** Before running the pipeline you will need to download the naive bayes classifier. This is made available by the QIMME2 developers [here](https://docs.qiime2.org/2019.10/data-resources/)
+
     ```bash
-    nextflow run nf-core/buggybarcodes -profile test,<docker/singularity/podman/shifter/charliecloud/conda/institute>
+    # Download the SILVA classifier
+    wget https://data.qiime2.org/2021.2/common/silva-138-99-515-806-nb-classifier.qza
+
+    # test pipeline to ensure it is working
+    nextflow run nf-core/buggybarcodes -profile test,<docker/singularity/conda/institute>
     ```
 
-    > Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
+    * Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
+
+    * **Note** For NIBSC HPC users, Franceso has created a `nibsc` profile for executing nextflow pipelines. This can be implemented using `-profile nibsc` at the command line.
+
+    *  If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the `--singularity_pull_docker_container` parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the `NXF_SINGULARITY_CACHEDIR` or `singularity.cacheDir` Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
 
 4. Start running your own analysis!
 
-    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
+> Typical command using preset parameters
 
     ```bash
-    nextflow run nf-core/buggybarcodes -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input '*_R{1,2}.fastq.gz' --genome GRCh37
+    nextflow run nf-core/buggybarcodes -profile <docker/singularity/conda/institute>  <--input_dir/--input_manifest '/FULL/PATH/TO/DATA'> --classifier '/FULL/PATH/TO/DOWNLOADED/CLASSIFIER' --metadata '/FULL/PATH/TO/METADATA'
     ```
 
-See [usage docs](https://nf-co.re/buggybarcodes/usage) for all of the available options when running the pipeline.
+> It is also possible to alter pipeline parameters (adapter sequences, filtering thresholds etc)
+
+    ```bash
+    nextflow run nf-core/buggybarcodes -profile <docker/singularity/conda/institute>  <--input_dir/--input_manifest '/FULL/PATH/TO/DATA'> --classifier '/FULL/PATH/TO/DOWNLOADED/CLASSIFIER' --metadata '/FULL/PATH/TO/METADATA' --forward_primer 'GTGYCAGCMGCCGCGGTAA...ATTAGAWACCCBNGTAGTCC' --reverse_primer 'GGACTACNVGGGTWTCTAAT...TTACCGCGGCKGCTGRCAC' --abundance 0.00005
+    ```
+
+See [usage docs](https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/usage.md) for all of the available options when running the pipeline.
 
 ## Pipeline Summary
 
 By default, the pipeline currently performs the following:
 
-<!-- TODO nf-core: Fill in short bullet-pointed list of default steps of pipeline -->
-
-* Sequencing quality control (`FastQC`)
+* Sequencing Quality Control (`FastQC`)
+* Import Sequences into QIIME (`QIIME2_Import`)
+* Read Adapter & Trimming (`QIIME2_Cutadapt_TrimPaired`)
+* Read Quality Trimming (`QIIME2_QualityFilter_QScore`)
+* Join Read Pairs (`QIIME2_VSearch_JoinPairs`)
+* Deblur Denoising and Amplicon Sequencing Variant Detection (`QIIME2_Deblur_Denoise16S`)
+* Taxonomic Classification Using SILVA 138 Database (`QIIME2_FeatureClassifier_ClassifySklearn`)
+* Filtering Taxon Tables (`QIIME2_Featuretable_FilterFeaturesConditionally`)
+* Taxa Barplot (`QIIME2_Taxa_Barplot`)
+* Export Data (`QIIME2_Tools_Export`)
 * Overall pipeline run summaries (`MultiQC`)
 
 ## Documentation
 
-The nf-core/buggybarcodes pipeline comes with documentation about the pipeline: [usage](https://nf-co.re/buggybarcodes/usage) and [output](https://nf-co.re/buggybarcodes/output).
+The nf-core/buggybarcodes pipeline comes with documentation about the pipeline: [usage]((https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/usage.md) and [output]((https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/output.md).
 
-<!-- TODO nf-core: Add a brief overview of what the pipeline does and how it works -->
+
 
 ## Credits
 
@@ -63,8 +85,6 @@ nf-core/buggybarcodes was originally written by Martin Gordon & Ravneet Bhuller.
 We thank the following people for their extensive assistance in the development
 of this pipeline:
 
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
@@ -72,9 +92,6 @@ If you would like to contribute to this pipeline, please see the [contributing g
 For further information or help, don't hesitate to get in touch on the [Slack `#buggybarcodes` channel](https://nfcore.slack.com/channels/buggybarcodes) (you can join with [this invite](https://nf-co.re/join/slack)).
 
 ## Citations
-
-<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi. -->
-<!-- If you use  nf-core/buggybarcodes for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
 
 You can cite the `nf-core` publication as follows:
 
@@ -86,4 +103,3 @@ You can cite the `nf-core` publication as follows:
 
 In addition, references of tools and data used in this pipeline are as follows:
 
-<!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->

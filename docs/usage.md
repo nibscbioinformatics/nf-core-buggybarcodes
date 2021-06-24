@@ -1,22 +1,18 @@
-# nf-core/buggybarcodes: Usage
-
-## :warning: Please read this documentation on the nf-core website: [https://nf-co.re/buggybarcodes/usage](https://nf-co.re/buggybarcodes/usage)
-
-> _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
+# nf-core-buggybarcodes: Usage
 
 ## Introduction
 
-<!-- TODO nf-core: Add documentation about anything specific to running your pipeline. For general topics, please point to (and add to) the main nf-core website. -->
+Nextflow handles job submissions on SLURM or other environments, and supervises running the jobs. Thus the Nextflow process must run until the pipeline is finished. We recommend that you put the process running in the background through `screen` / `tmux` or similar tool. Alternatively you can run nextflow within a cluster job submitted your job scheduler.
 
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/buggybarcodes --input '*_R{1,2}.fastq.gz' -profile docker
+nextflow run nf-core/buggybarcodes -profile singularity --input_manifest '/FULL/PATH/TO/DATA' --classifier '/FULL/PATH/TO/DOWNLOADED/CLASSIFIER' --metadata '/FULL/PATH/TO/METADATA'
 ```
 
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
+This will launch the pipeline with the `singularity` configuration profile. See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -26,6 +22,48 @@ results         # Finished results (configurable, see below)
 .nextflow_log   # Log file from Nextflow
 # Other nextflow hidden files, eg. history of pipeline runs and old logs.
 ```
+## Sample Input
+
+Currently, `buggybarcodes` can only take paired-end reads as input. A future update will focus on implementing single-end reads functionality
+The `buggybarcodes` pipeline can take input in two forms: as a directory containing the paired-end sequencing reads (--input_dir) and a manifest file containing the full paths to the sequencing reads (--input_manifest)
+**Please Note** `--input_dir` and `--input_manifest` cannot be provided as input at the same time - please specify one option
+
+### Input Reads (--input_dir)
+
+The input can be a directory containing the paired-end sequencing reads
+
+```bash
+--input_dir '[path to samplesheet file]'
+```
+### Input Manifest FIle (--input_manifest)
+
+You can submit a manifest file as an alternative way to provide input reads. No submission of read files with `--input_dir` is required this way.
+
+sample-id	forward-absolute-filepath	reverse-absolute-filepath
+
+A manifest must be a tab-separated file that *must have the following labels in this exact order*: sample-id, forward-absolute-filepath, reverse-absolute-filepath*. In case of single-end reads, the labels should be: sample-id, absolute-filepath. The sample identifiers must be listed under sample-id. Paths to forward and reverse reads must be reported under forward-absolute-filepath and reverse-absolute-filepath, respectively. Path to single-end must be reported under absolute-filepath.
+
+An example of a `manifest.tsv` is located in the `assets` [folder](https://raw.githubusercontent.com/nibscbioinformatics/nf-core-buggybarcodes/dev/assets/test_manifest.tsv). Further information on the manifest file format can be viewed on the QIIME2 [documentation](https://docs.qiime2.org/2021.4/tutorials/importing)
+
+### Input Metadata
+
+his is optional, but for performing downstream analysis such as barplots, diversity indices or differential abundance testing, a metadata file is essential.
+
+```bash
+--metadata "path/to/metadata.tsv"
+```
+
+Please note the following requirements:
+
+1. The path must be enclosed in quotes
+2. The metadata file has to follow the QIIME2 specifications (https://docs.qiime2.org/2019.10/tutorials/metadata/)
+
+The first column in the metadata file is the identifier (ID) column and defines the sample or feature IDs associated with your study. Metadata files are not required to have additional metadata columns, so a file containing only an ID column is a valid QIIME 2 metadata file. Additional columns defining metadata associated with each sample or feature ID are optional. NB: without additional columns there might be no groupings for the downstream analyses.
+
+### Multi-Run Samples
+
+Unfortunately unlike the shotgun metagenomics bagobugs pipeline, buggybarcodes cannot handle multisample runs. **Please note** Denoisers should not be run on combined samples as they build a per-sampling run error profile.
+
 
 ### Updating the pipeline
 
@@ -43,6 +81,75 @@ First, go to the [nf-core/buggybarcodes releases page](https://github.com/nf-cor
 
 This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future.
 
+## Pipeline Parameters
+
+### `--input_dir`
+
+Use this to specify the location of your input FastQ files. For example:
+
+```bash
+--input_dir 'path/to/data'
+```
+
+Please note the following requirements:
+
+1. The path must be enclosed in quotes
+`
+
+### `--input_manifest`
+
+Use this to specify the location of the manifest file containing sample-id info and paths to the FastQ files. For example:
+
+```bash
+--input_manifest 'path/to/data/manifest.tsv'
+```
+
+Please note the following requirements:
+
+1. The path must be enclosed in quotes
+2. The tsv must contain a header
+3. The first column of the csv file should be `sample-id`
+4. The second column of the csv file should be `forward-absolute-filepath`
+5. The third column of the csv file should be `reverse-absolute-filepath`
+
+### `--metadata`
+
+Sample metadata file. The first column in the metadata file is the identifier (ID) column and defines the sample or feature IDs associated with your study
+
+```bash
+--metadata 'path/to/metadata.txt'
+```
+
+Please note the following requirements:
+
+1. The path must be enclosed in quotes
+2. The tsv must contain a header
+3. The first column of the csv file should be `sampleid`
+
+### `--classifier`
+
+QIIME2 object containing the naive bayes classifier for taxonomic identification
+
+```bash
+--classifier 'path/to/classifier.qza'
+```
+### `--forward-primer`
+
+Forward primer sequence (must be enclosed in quotes)
+
+### `--reverse-primer`
+
+Reverse primer sequence (must be enclosed in  quotes)
+### `--abundance`
+
+Relatvie abundance threshold for a given a taxa to be retained in the sample (0-1)
+### `--prevalence`
+
+Proportion of samples a taxon must appear in to be retained (0-1)
+### `--discard_untrimmed`
+
+Cutadapt will remove untrimmed reads
+
 ## Core Nextflow arguments
 
 > **NB:** These options are part of Nextflow and use a _single_ hyphen (pipeline parameters use a double-hyphen).
@@ -51,9 +158,7 @@ This version number will be logged in reports when you run the pipeline, so that
 
 Use this parameter to choose a configuration profile. Profiles can give configuration presets for different compute environments.
 
-Several generic profiles are bundled with the pipeline which instruct the pipeline to use software packaged using different methods (Docker, Singularity, Podman, Shifter, Charliecloud, Conda) - see below.
-
-> We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
+Several generic profiles are bundled with the pipeline which instruct the pipeline to use software packaged using different methods (Docker, Singularity, Conda) - see below.
 
 The pipeline also dynamically loads configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when it runs, making multiple config profiles for various institutional clusters available at run time. For more information and to see if your system is available in these configs please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
 
@@ -68,15 +173,6 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 * `singularity`
   * A generic configuration profile to be used with [Singularity](https://sylabs.io/docs/)
   * Pulls software from Docker Hub: [`nfcore/buggybarcodes`](https://hub.docker.com/r/nfcore/buggybarcodes/)
-* `podman`
-  * A generic configuration profile to be used with [Podman](https://podman.io/)
-  * Pulls software from Docker Hub: [`nfcore/buggybarcodes`](https://hub.docker.com/r/nfcore/buggybarcodes/)
-* `shifter`
-  * A generic configuration profile to be used with [Shifter](https://nersc.gitlab.io/development/shifter/how-to-use/)
-  * Pulls software from Docker Hub: [`nfcore/buggybarcodes`](https://hub.docker.com/r/nfcore/buggybarcodes/)
-* `charliecloud`
-  * A generic configuration profile to be used with [Charliecloud](https://hpc.github.io/charliecloud/)
-  * Pulls software from Docker Hub: [`nfcore/buggybarcodes`](https://hub.docker.com/r/nfcore/buggybarcodes/)
 * `conda`
   * Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter or Charliecloud.
   * A generic configuration profile to be used with [Conda](https://conda.io/docs/)
@@ -84,6 +180,13 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 * `test`
   * A profile with a complete configuration for automated testing
   * Includes links to test data so needs no other parameters
+
+If you are running from within a NIBSC cluster, a *nibsc* profile is also available
+
+* `nibsc`
+  * uses singularity by default
+  * sets the right mounts to run on NIBSC HPC cluster
+  * uses *slurm* as tasks scheduler
 
 ### `-resume`
 
@@ -103,19 +206,45 @@ Whilst these default requirements will hopefully work for most people with most 
 
 ```nextflow
 process {
-  withName: star {
+  withName: qiime2_featureclassifier_classifysklearn {
     memory = 32.GB
   }
 }
 ```
 
-To find the exact name of a process you wish to modify the compute resources, check the live-status of a nextflow run displayed on your terminal or check the nextflow error for a line like so: `Error executing process > 'bwa'`. In this case the name to specify in the custom config file is `bwa`.
+To find the exact name of a process you wish to modify the compute resources, check the live-status of a nextflow run displayed on your terminal or check the nextflow error for a line like so: `Error executing process > 'QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN'`. In this case the name to specify in the custom config file is `QIIME2_FEATURECLASSIFIER_CLASSIFYSKLEARN`.
 
 See the main [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more information.
 
-If you are likely to be running `nf-core` pipelines regularly it may be a good idea to request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this please can you test that the config file works with your pipeline of choice using the `-c` parameter (see definition above). You can then create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/master/nfcore_custom.config) to include your custom profile.
+### Tool-specific options
 
-If you have any questions or issues please send us a message on [Slack](https://nf-co.re/join/slack) on the [`#configs` channel](https://nfcore.slack.com/channels/configs).
+For the ultimate flexibility, we have implemented and are using Nextflow DSL2 modules in a way where it is possible to change tool-specific command-line arguments (e.g. providing an additional command-line argument to the `CUTADAPT` process) as well as publishing options (e.g. saving files produced by the `CUTADAPT` process that aren't saved by default by the pipeline). As this pipeline has been tailored to specific end-user requirements, it may be necessary to alter certain tools parameters to meet your requirements. In the majority of instances, as a user you won't have to change the default options set by the pipeline, however, there may be edge cases where creating a simple custom config file can improve the behaviour of the pipeline if for example it is failing due to a weird error that requires setting a tool-specific parameter to deal with smaller / larger genomes.
+
+The command-line arguments passed to Cutadapt in the `CUTADAPT` module are a combination of:
+
+* Mandatory arguments or those that need to be evaluated within the scope of the module, as supplied in the [`script`](https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/main/modules/nf-core/software/cutadapt/main.nf) section of the module file.
+
+* An [`options.args`](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/conf/modules.config) string of non-mandatory parameters that is set to default values for the module. These can be altered in the `conf/modules.config` file and used by the module in the sub-workflow / workflow context via the Nextflow `include` keyword and `addParams` Nextflow option [`see here`](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/workflows/bagobugs.nf).
+
+As mentioned at the beginning of this section it may also be necessary for users to overwrite the options passed to modules to be able to customise specific aspects of the way in which a particular tool is executed by the pipeline. Given that all of the default module options are stored in the pipeline's `modules.config` as a [`params` variable](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/conf/modules.config) it is also possible to overwrite any of these options via a custom config file.
+
+Say for example we want to append an additional, non-mandatory parameter (i.e. `--p-trim-length 250`) to the arguments passed to the `QIIME2_DEBLUR_DENOISE16S` module. Firstly, we need to access the default `args` specified in the [`modules.config`](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/conf/modules.config) and edit the config file and add additional options you would like to provide.
+
+As you will see in the example below, we have:
+
+* changed the default `publish_dir` value to where the files will eventually be published in the main results directory.
+* changed the read length size to 250bp
+
+```nextflow
+params {
+    modules {
+       'qiime2_deblur_denoise16S' {
+            args           = "--p-trim-length 250"
+            publish_dir    = "new_results"
+
+       }
+    }
+}
 
 ### Running in the background
 

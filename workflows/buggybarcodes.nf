@@ -127,7 +127,7 @@ workflow BUGGYBARCODES {
 */
 
     FASTQC_RAW (
-       ch_fastq
+        ch_fastq
     )
     ch_software_versions = ch_software_versions.mix(FASTQC_RAW.out.version.first().ifEmpty(null))
 
