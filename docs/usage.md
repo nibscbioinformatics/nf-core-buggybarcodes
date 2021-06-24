@@ -245,7 +245,7 @@ params {
        }
     }
 }
-
+```
 ### Running in the background
 
 Nextflow handles job submissions and supervises the running jobs. The Nextflow process must run until the pipeline is finished.

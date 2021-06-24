@@ -74,7 +74,7 @@ By default, the pipeline currently performs the following:
 
 ## Documentation
 
-The nf-core/buggybarcodes pipeline comes with documentation about the pipeline: [usage]((https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/usage.md) and [output]((https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/output.md).
+The nf-core/buggybarcodes pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-buggybarcodes/blob/dev/docs/output.md).
 
 
 
