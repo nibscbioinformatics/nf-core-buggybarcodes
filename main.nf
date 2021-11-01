@@ -54,8 +54,9 @@ if (params.enable_conda) {
 /* --            RUN WORKFLOW(S)               -- */
 ////////////////////////////////////////////////////
 
+include { BUGGYBARCODES } from './workflows/buggybarcodes' addParams( summary_params: summary_params )
+
 workflow {
-    include { BUGGYBARCODES } from './workflows/buggybarcodes' addParams( summary_params: summary_params )
     BUGGYBARCODES()
 }
 

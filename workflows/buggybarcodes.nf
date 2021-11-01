@@ -50,7 +50,7 @@ qiime2_import_options.args += params.input_manifest ? Utils.joinModuleArgs(['--i
 //qiime2_import_options.args += params.input_dir ? " --input-format CasavaOneEightSingleLanePerSampleDirFmt"  : ''
 
 def qiime2_cutadapt_trimpaired_options = modules['qiime2_cutadapt_trimpaired']
-qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs(["--p-discard-untrimmed"]) : ""
+qiime2_cutadapt_trimpaired_options.args += params.discard_untrimmed ? Utils.joinModuleArgs(['--p-discard-untrimmed']) : ''
 
 // Modules: local
 include { GET_SOFTWARE_VERSIONS                             } from '../modules/local/get_software_versions'                               addParams( options: [publish_files : ['csv':'']]             )
